@@ -1,0 +1,113 @@
+#!/bin/bash
+
+OPTIND=1 
+inc_backup=0
+verbose=0
+ramdisk=0
+ramdisk_path=""
+target="/backup/"
+source=$(pwd)
+size=1024m
+type=tmpfs
+backupname=""
+
+ramdisk_check ()
+{
+  if mount | grep ${ramdisk_path%/*} > /dev/null
+  then
+    return 1
+  else
+    return 0
+  fi
+}
+
+while getopts ":h?ir:vt:s:S:t:" opt 
+do
+  case "$opt" in
+    i)
+      if [ $inc_backup -ne 0 ]
+      then
+        echo Duplicate Arguments.
+        exit 1
+      fi      
+      inc_backup=1
+      ;;
+    r)
+      if [ $ramdisk -ne 0 ]
+      then
+        echo Duplicate Arguments.
+        exit 1
+      fi
+      ramdisk=1
+      ramdisk_path=$OPTARG
+      ;;
+    t)
+      if [ $(target) != "/backup/" ]
+      then
+        echo Duplicate Arguments.
+        exit 1
+      fi
+      target=$OPTARG
+      ;;
+    s)
+      if [ $(source) != $(pwd) ]
+      then
+        echo Duplicate Arguments.
+        exit 1
+      fi
+      source_directory=$OPTARG
+      ;;
+    S)
+      size=$OPTARG
+      ;;
+    t)
+      type=$OPTARG
+      ;;
+    :)
+      echo "Option $OPTARG requires an argument."
+      exit 2
+      ;;
+    h|\?)
+      ;;
+  esac
+done
+
+shift $((OPTIND-1))
+
+[ "$1" = "--" ] && shift
+
+if [ $inc_backup -ne 0 ]
+then
+  echo "Using incremental backup scheme."
+fi
+
+if [ $ramdisk -ne 0 ]
+then
+  ramdisk_check
+  if [ $? -ne 1 ]
+  then
+    echo "Ramdisk not mounted"
+    input=""
+    while [ "$input" != "y" ] && [ "$input" != "n" ]
+    do
+      echo "Attempt to mount new ramdisk at $ramdisk_path?(y/n)"
+      read input
+    done
+    if [ "$input" == n ]
+    then
+      echo "Aborting backup."
+      exit 3
+    else
+      mount -t $type -o size=$size $type $ramdisk_path
+      if [ $? -ne 0 ]
+      then
+        echo "An error occured!"
+        exit 4
+      fi
+      echo "Ramdisk successfully created at $ramdisk_path."
+    fi
+  else
+    echo "Ramdisk is already mounted at $ramdisk_path. Continuing using this ramdisk."
+  fi
+  backupname=
+fi
