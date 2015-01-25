@@ -1,83 +1,67 @@
 #!/bin/bash
 
 
+RUNUSER=""
+SERVERNAME=""
+RUNCOMMAND=""
 
-se_status ()
+
+s_status ()
 {
-  screen -ls | grep --quiet SEServer 
+  screen -ls | grep --quiet $SERVERNAME
   return $?
 }
 
-se_start ()
+s_start ()
 {
   if se_status
   then
     echo "Server is already running please stop this server before making another."
   else
-    echo "Starting Space Engineer server."
-    screen -S SEServer -dm bash -c "WINEDEBUG=-all wine /home/spaceengineers/.wine/drive_c/users/spaceengineers/Desktop/Tools/DedicatedServer/SpaceEngineersDedicated.exe -console"
+    echo "Starting $SERVERNAME server."
+    screen -S $SERVERNAMEServer -dm bash -c "$RUNCOMMAND"
   fi
 }
 
-se_stop ()
+s_stop ()
 {
   if se_status 
   then
-    echo "Stopping Space Engineers Server."
-    screen -S SEServer -X stuff $'\003'
-    screen -S SEServer -r
+    echo "Stopping $SERVERNAME Server."
+    screen -S $SERVERNAMEServer -X stuff $'\003'
+    screen -S $SERVERNAMEServer -r
   else
     echo "Server isn't running."
   fi
 }
 
-se_restart ()
+s_restart ()
 {
   if se_status
   then
-    echo "Restarting Space Engineers Server."
-    se_stop
-    se_start
+    echo "Restarting $SERVERNAME Server."
+    s_stop
+    s_start
   else
-    se_start
+    s_start
   fi
 }
 
-se_update ()
+s_update ()
 {
-  if [ -O update/DedicatedServer.zip ] && [ -O update/ModelPack.zip ]
-  then
-    mv update/DedicatedServer.zip .wine/drive_c/users/spaceengineers/Desktop/Tools/.
-    mv update/ModelPack.zip .wine/drive_c/users/spaceengineers/Desktop/Tools/.
-    echo "Updating server files."
-    unzip .wine/drive_c/users/spaceengineers/Desktop/Tools/DedicatedServer.zip
-    echo "Updating models."
-    unzip .wine/drive_c/users/spaceengineers/Desktop/Tools/ModelPack.zip
-    echo "Update finished."
-  else
-    echo "No update files could be found in directory 'update/'."
-    if [ ! -d "update" ]
-    then
-      mkdir update
-    fi
-  fi
+  
 }
 
-help ()
+s_help ()
 {
   cat .help
 }
 
 
-if [ "$(whoami)" != "spaceengineers" ]
+if [ "$(whoami)" != "$RUNUSER" ]
 then
-  echo You are logged in as $(whoami) but the server can only be started as the spaceengineers user. Please log in as this user and run this script again.
+  echo You are logged in as $(whoami) but the server can only be started as the $RUNUSER user. Please log in as this user and run this script again.
   exit 1
-fi
-if [ "$(pwd)" != "/home/spaceengineers" ]
-then
-  echo You can only run this script from your home directory.
-  exit 2
 fi
 if [ ! -z "$2" ] 
 then
@@ -86,29 +70,29 @@ then
 fi 
 case $1 in
   start)
-	se_start
+	s_start
         ;;
   stop)
-	se_stop 
+	s_stop 
 	;;
   restart)
-	se_restart 
+	s_restart 
 	;;
   update)
-	se_update
+	s_update
 	;;
   status)
-	if se_status;
+	if s_status;
 	then
-		echo "SEServer is running."
+		echo "$SERVERNAMEServer is running."
 	else
-		echo "SEServer is not running."
+		echo "$SERVERNAMEServer is not running."
 	fi
 	;;
   help)
-	help
+	s_help
         ;;
   *)
-	help
+	s_help
 	;;
 esac
